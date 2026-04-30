@@ -1,0 +1,128 @@
+---
+title: "Unit 1 Day 1"
+format: html
+---
+
+This is a test!
+
+# Header
+
+## sub-header 
+
+#### header level4
+
+__Bolded text__
+
+*italosized text*
+
+What about this stuff?
+
+```{python}
+print("Hello world!")
+print("Hello too!")
+"Last word"
+
+x = 4
+x += 2
+x
+```
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+# what is a dataframe
+```{python}
+df = pl.DataFrame(
+    np.array([
+    [4, 5, 6],
+    [7, 8, 9],
+    [10, 11, 12]
+    ]),
+    schema=['a', 'b', 'c']
+)
+df
+
+```
+
+```{python}
+import polars as pl
+
+url = "https://byui-cse.github.io/cse110-course/lesson11/life-expectancy.csv"
+df = pl.read_csv(url)
+```
+
+```{python}
+#display to make it show both for run cell
+display(df.columns)
+df.shape
+```
+
+
+```{python}
+with pl.Config(tbl_rows=30, tbl_cols=20):
+    display(df.head(18))
+```
+
+
+```{python}
+df.describe()
+```
+
+ # Subset parts of data
+
+
+ ```{python}
+ df['Entity']
+ df[['Entity', 'Code', 'Year']]
+ df[3:5]
+ df.head()
+ #chaining things together
+ df[['Entity', 'Code', 'Year']][3:5]['Code']
+ df
+ ```
+
+ ## rename a column 
+
+
+ ```{python}
+ df_clean = df.rename({'Life expectncy (years)'
+ ':''life_yrs'})
+ df_clean
+ ```
+
+
+ ```{python}
+ df_clean2 = df
+ df_clean2columns = ['Entity', 'Code', 'Year', 'Life']
+ ```
+
+
+ ```{python}
+ df_clean2.head()
+ ```
+
+
+ ```{python}
+ df_clean.select(['Entity', 'Code'])
+ df_clean.select(['Entity', 'Code'])
+ df_clean.select(pl.col('life_yrs') * 12)
+ ```
+
+# select a subset of rows
+
+.select is for columns 
+.filter is for rows
+ ```{python}
+ df_clean.filter(pl.col('Year') > 1999)
+ df_clean.filter(pl.col('Year') <= 2000, pl.col('Year')>= 1980)
+ ```
+
+
+ ```{python}
+ #drop function
+ df_clean.drop(pl.col('Code'))
+ ```
