@@ -1,7 +1,7 @@
 ---
 title: "Client Report - What's in a Name?"
 subtitle: "Unit 1 Task 2"
-author: "[STUDENT NAME]"
+author: "Ethan Neunhoffer"
 format:
   html:
     self-contained: true

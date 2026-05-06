@@ -1,0 +1,128 @@
+---
+title: "Client Report - Famous Names"
+subtitle: "Unit 1 Task 3"
+author: "Ethan Neunhoffer"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+```{python}
+# Learn morea about Code Cells: https://quarto.org/docs/reference/cells/cells-jupyter.html
+
+# Include and execute your code here
+df = pl.read_csv("https://posit.byui.edu/content/0d43d66f-d3b7-4c43-8c36-52e3ed69e7f1/names_year_csv.csv")
+```
+
+
+
+## QUESTION 1
+
+<!-- Make sure at least one of your charts includes reference marks!! -->
+
+__Make a new column that represents the total number of babies with your name for only those states in which you have lived. (If you have only ever lived in one state, pick at least one other state so you get practice summing across columns). Make a graph displaying that total for your name over time.__
+
+It seems like my name has had its first big spike around 1985 before then having very minimal if any use and then every year from 1996 onward climbed very rapidly in popularity and then begins to drop off again around 2011-2013.
+
+
+```{python}
+# Q1
+ethan_cal = df.filter(
+    pl.col("name") == "Ethan"
+  ).with_columns(
+    (pl.col("CA") + pl.col("HI")).alias("States")
+  ).sort("Total", descending=True)
+
+print(ethan_cal)
+
+(ggplot(ethan_cal, aes(x="year", y="States"))
+ + geom_line()
+ + geom_point()
+ + labs(title="Babies Named Ethan in CA and HI Over Time", x="Year", y="Total Babies")
+)
+
+```
+
+
+## QUESTION 2
+
+1. __Let's look at a name that is special for members of the church: Brigham. For each year, calculate what proportion of babies named Brigham were born in Idaho and Utah? Make a graph displaying the proportion over time.__  
+
+It looks like the name was a pretty high proportion for the earlier years closer to the founding of the Church but as we got further away there is a massive drop in 1992. Then it goes back up then is begining to slowly decline again. Likely due to the influence of older names being phased out for newer alternatives.
+
+```{python}
+# Q2
+brigham = df.filter(
+  pl.col("name") == "Brigham"
+).with_columns(
+  ((pl.col("ID") + pl.col("UT")) / pl.col("Total")).alias("proportion")
+).sort("Total", descending=True)
+
+print(brigham)
+
+(ggplot(brigham, aes(x="year", y="proportion"))
+ + geom_line()
+ + geom_point()
+ + geom_hline(yintercept=0.5, color="red", linetype="dashed")
+ + geom_text(x=1985, y=0.57, label="50% threshold", color="red", size=10)
+ + labs(title="Babies Named Brigham in ID and UT Over The Years", x="Year", y="Proportion of Total")
+)
+
+```
+
+<!-- Make sure at least one of your charts includes reference marks!! -->
+
+## QUESTION 3
+
+1. __Consider doing some data validation. For the name David, calculate a sum of all 50 states and District of Columbia for each year. Now compare that total to the value in the 'Total' column. In which years, if any, do they not agree?__
+
+From what the data shows it seems that the name was relativly low from the 1920's to about the 1930's then had a massive rise hitting a peak around 1960 then started to bottom out and get lower again more recently. It looks like they all match and the data agrees.
+
+```{python}
+# Q3
+David = df.filter(pl.col("name") == "David").with_columns(
+pl.sum_horizontal(pl.exclude(["name", "year", "Total"])).alias("state_sum")
+)
+mismatches = David.filter(pl.col("state_sum") != pl.col("Total"))
+print(mismatches)
+
+print(David)
+
+(ggplot(David, aes(x="year", y="state_sum"))
+ + geom_line()
+ + geom_point()
+ + labs(title="Total vs State sum", x="Year", y="Total")
+)
+
+(ggplot(mismatches, aes(x="year", y="state_sum"))
+ + geom_line()
+ + geom_point()
+ + labs(title="Total vs State sum", x="Year", y="Total")
+)
+```

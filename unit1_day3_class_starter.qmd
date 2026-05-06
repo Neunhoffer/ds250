@@ -1,0 +1,78 @@
+
+---
+title: "Untitled"
+format: html
+---
+
+Load libraries and load in data
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+Who is the biggest pop star data. One way to measure this is by how many social media followers someone has. That data was collected in 2018 for 20 popular and recognizable artists.
+
+```{python}
+#bad example
+followers = pl.read_csv("https://byuidatascience.github.io/DS250-Course-Polars/Data/social_media_followers.csv")
+
+followers_temp = followers.with_columns(pl.col('instagram') / 1000000)
+followers_temp
+```
+
+
+
+```{python}
+followers_mils = followers.with_columns(insta_mils = pl.col ('instagram') /  1000000 )
+followers_mils = followers.with_columns((pl.col('instagram') / 1000000).alias('insta_mils'))
+followers_mils
+```
+
+
+```{python}
+followers.with_columns(
+    pl.col('instagram') / 1000000,
+    pl.col('youtube') / 1000000,
+    pl.col('facebook') / 1000000,
+    pl.col('twitter') / 1000000
+).with_columns(
+    (pl.col('instagram') + pl.col('youtube') + pl.col('facebook') + pl.col('twitter')).alias('total')
+).with_columns(
+    insta_perc = pl.col('instagram') / pl.col('total'),
+    you_perc = pl.col('youtube') / pl.col('total'),
+    face_perc = pl.col('facebook') / pl.col('total'),
+    twit_perc = pl.col('twitter') / pl.col('total')
+)
+
+```
+
+
+```{python}
+df = followers.with_columns(
+    pl.col(['instagram', 'youtube', 'facebook', 'twitter']) / 1000000 
+).with_columns(
+    total = pl.col('instagram') + pl.col('youtube') pl.col('facebook') + pl.col('twitter')
+).with_columns(
+    (pl.col(['instagram', 'youtube', 'facebook', 'twitter']) / pl.col('total')).name.suffix('_perc')
+).with_columns(
+    sum_perc = pl.sum_horizontal(['instagram_perc', 'youtube_perc', 'facebook_perc', 'twitter_perc'])
+    sum_perc = pl.sum_horizontal(pl.col('.*_perc$'))
+)
+df
+```
+
+
+```{python}
+(
+    ggplot(data = df.sort('instagram'), mapping=aes(y='id', x='instagram'))
+    + geom_bar(stat='identity')
+    + labs(
+        x='Instagram followers (in millions)',
+        title="Arianna & selena Dominate Instagram"
+    )
+)
+```
