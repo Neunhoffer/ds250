@@ -1,0 +1,57 @@
+---
+title: "Unit 1.4 Starter"
+format: html
+---
+
+Load libraries and load in data
+
+```{python}
+import numpy as np
+import polars as pl
+from lets_plot import *
+LetsPlot.setup_html(isolated_frame=True)
+
+
+url = "https://byui-cse.github.io/cse110-course/lesson11/life-expectancy.csv"
+df = pl.read_csv(url)
+```
+
+REVIEW EXERCISE:
+
+Can you get a dataset that includes 3 countries (pick the United States and two other of your favorites)?
+
+
+```{python}
+
+df
+```
+
+
+```{python}
+three = (
+    df.filter(pl.col('Entity').is_in(['United States', 'Japan', 'France']))
+    .rename({'Life expectancy (years)': 'Life'})
+)
+three 
+```
+
+
+```{python}
+p = (
+    ggplot(data = three, mapping=aes(x='Year', y='Life', color='Entity'))
+    + geom_line()
+    + scale_x_continuous(format ='d')
+    + labs(title='Life Expectancy Through the Years')
+)
+
+
+p
+```
+
+
+```{python}
+(
+    p + theme_grey()
+    + theme(plot_title=element_text(color='blue', size=20, hjust=.5), legend_title=element_text(color='pink'))
+)
+```
