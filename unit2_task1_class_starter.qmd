@@ -1,0 +1,100 @@
+---
+title: "Unit 2 Task 1 Lesson"
+format: html
+---
+
+```{python}
+import polars as pl
+import requests #new for reading in JSON
+import io       #new for reading in JSON
+import numpy as np
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+```{python}
+
+url = "https://byuidatascience.github.io/DS250-Course-Polars/Data/house-price.json"
+
+# Use the requests library to send an HTTP GET request to that URL.
+# The result (response) contains the server’s reply, including the file contents.
+# The actual bytes of the file are in response.content.
+response = requests.get(url)
+
+# response.content is raw bytes, not a file.
+# io.BytesIO(...) wraps those bytes in a file-like object in memory, which Polars can read from.
+# pl.read_json(...) parses the JSON and loads it into a Polars DataFrame called df.
+houses = pl.read_json(io.BytesIO(response.content))
+```
+
+
+```{python}
+houses.head()
+```
+
+We're going to gice a price bump of 5000 * (sqft / 1000) when unfurnished
+semifurnished 2000 / 1000sqft
+furnished no bump
+
+```{python}
+adjusted = houses.with_columns(
+    adj_price = pl.when(pl.col("furnishingstatus") == "unfurnished")
+    .then(pl.col('price') + 5000 * pl.col('area') / 1000)
+    .when(pl.col('furnishingstatus') == 'semi-furnished')
+    .then(pl.col('price') + 2000 * pl.col('area') / 1000)
+    .otherwise(pl.col('price'))
+)
+adjusted.tail()
+```
+
+
+
+```{python}
+(
+    adjusted.select(
+        pl.col(pl.Float64, pl.Int64)
+    )
+    .with_columns(
+        (pl.col(['price', 'adj_price']) / 1000).name.suffix('_k')
+        )
+)
+```
+
+
+```{python}
+adjusted.with_columns(
+    (pl.col())
+)
+```
+
+
+```{python}
+import polars.selectors as cs
+adjusted.with_columns((cs.contains('price') / 1000).name.suffix('_k'))
+```
+
+
+```{python}
+import polars.selectors as cs 
+
+adjusted.select(cs.numeric())
+```
+
+
+```{python}
+df_dumb = adjusted.with_columns(pl.col('bedrooms').cast(pl.String))
+df_dumb
+undone = df_dumb.with_columns(pl.col('bedrooms').cast(pl.Int64))
+undone
+```
+
+
+```{python}
+(
+    ggplot(data = undone, mapping=aes(x = 'bedrooms', y='area'))
+    + geom_boxplot(outlier_alpha=0)
+    + scale_x_discrete(limits=[1, 2, 3, 4, 5, 6, 7])
+
+)
+```
