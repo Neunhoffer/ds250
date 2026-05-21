@@ -1,0 +1,48 @@
+---
+title: "Unit 2 task 3"
+format: html
+---
+
+
+```{python}
+import polars as pl
+import requests
+import io
+import numpy as np
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+df = pl.DataFrame({
+    "A": ["X", "B", "C", "X", None],
+    "B": [1, 2, 3, 1, -999],
+    "C": ["apple", "banana", "cherry", "apple", "n/a"]
+})
+
+```
+
+
+```{python}
+df.with_columns(
+    pl.when(pl.col('B') < 0).then(None).otherwise(pl.col('B')).alias('B-when'),
+    pl.col('B').replace(2,10),
+    pl.col('C').replace('apple', 'pear').alias('changes_whole_cell'),
+    pl.col('C').str.replace('a', 'o', n=3),
+    pl.col('C').str.replace_all('a', 'o').alias('all_partial_strings'),
+    pl.col('A').replace('X', 10),
+    pl.col('A').replace('B', 20),
+
+    ) 
+```
+# Filling in missing values
+
+```{python}
+df = pl.DataFrame({
+     "a": [1, 2, None, 3]
+    ,"b": [1.0, 2, float("nan"), None]
+    ,"c": [-999, 5, None, 11]
+})
+```
