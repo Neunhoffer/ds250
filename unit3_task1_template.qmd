@@ -1,0 +1,118 @@
+---
+title: "Client Report - Baseball Database"
+subtitle: "Unit 3 Task 1"
+author: "Ethan Neunhoffer"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import numpy as np
+import sqlite3
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+# Learn morea about Code Cells: https://quarto.org/docs/reference/cells/cells-jupyter.html
+
+# Include and execute your code here
+sqlite_file = 'lahmansbaseballdb.sqlite'
+# this file must be in the same location as your .qmd or .py file
+con = sqlite3.connect(sqlite_file)
+```
+
+```{python}
+# Include and execute your code here
+
+# The code below uses some basic SQL code to read in the entire 'batting' table in the database and store it in a polars dataframe called 'results'. You must write polars code to manipulate the results dataframe to address the task.
+
+q = """
+    SELECT *
+    FROM batting
+    """
+results = pl.read_database(q, con, infer_schema_length=None) 
+# What does infer_schema_length = None do?
+results
+```
+
+## QUESTION 1
+
+__Use the provided code above to read in the batting table. Then, with Python Polars manipulate the 'results' dataframe to calculate the number of at bats and the batting average for each year a player played. Filter the data frame to only include players with at least 10 at bats that year. Sort the dataframe from highest batting average to lowest, and then by playerid alphabetically. Show the top 5 results in your report.__
+
+Note: A batting average is meant to measure how often a player puts the ball in play and gets to base safely. For this task, use a simplified version of batting average defined as the sum of hits (labeled 'H') divided by number of at bats (labeled 'AB').
+
+The table below shows the top 5 player-seasons by batting average and a minimum 10 of bats. Players can have multiple stints in a year (e.g., traded mid-season), AB and H are first summed across stints before doing the average. The results show a batting average of 1.000 is possible in small samples, illustrating why the 10 AB minimum matters but is still a pretty low entry.
+
+```{python}
+# Group by player and year, summing across stints
+q1 = (
+    results
+    .group_by(["playerID", "yearID"])
+    .agg([
+        pl.col("AB").sum().alias("AB"),
+        pl.col("H").sum().alias("H"),
+    ])
+    .filter(pl.col("AB") >= 10)
+    .with_columns(
+        (pl.col("H") / pl.col("AB")).alias("batting_avg")
+    )
+    .sort(["batting_avg", "playerID"], descending=[True, False])
+    .head(5)
+)
+
+q1
+```
+
+
+## QUESTION 2
+
+__Use the provided code above to read in the batting table. Then, with Python Polars manipulate the 'results' dataframe to calculate the batting average for each player over their entire career (all years combined). Only include players with at least 100 at bats over their entire career. Sort the dataframe from highest batting average to lowest, and then by playerid alphabetically. Show the top 5 results in your report.__ 
+
+Note: A batting average is meant to measure how often a player puts the ball in play and gets to base safely. For this task, use a simplified version of batting average defined as the sum of hits (labeled 'H') divided by number of at bats (labeled 'AB').
+
+The table below shows the top 5 players by their career batting averages, with a minimum of at least 100 career bats. Career totals are calculated by adding all hits and at bats together across every year and stint. Requiring 100 AB filters out players with very few appearances, making the averages more accurate. The top career averages are around .360–.370, consistent with historical records of elite hitters.
+
+```{python}
+# Group by player across all years and stints
+q2 = (
+    results
+    .group_by("playerID")
+    .agg([
+        pl.col("AB").sum().alias("AB"),
+        pl.col("H").sum().alias("H"),
+    ])
+    .filter(pl.col("AB") >= 100)
+    .with_columns(
+        (pl.col("H") / pl.col("AB")).alias("batting_avg")
+    )
+    .sort(["batting_avg", "playerID"], descending=[True, False])
+    .head(5)
+)
+
+q2
+```
+
+
