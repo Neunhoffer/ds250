@@ -1,0 +1,118 @@
+---
+title: "Client Report - Baseball Database SQL Query"
+subtitle: "Unit 3 Task 2"
+author: "Ethan Neunhoffer"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute:
+  warning: false
+
+---
+
+
+```{python}
+import polars as pl
+import numpy as np
+import sqlite3
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+# Learn morea about Code Cells: https://quarto.org/docs/reference/cells/cells-jupyter.html
+
+# Include and execute your code here
+sqlite_file = 'lahmansbaseballdb.sqlite'
+# this file must be in the same location as your .qmd or .py file
+con = sqlite3.connect(sqlite_file)
+```
+
+## QUESTION 1
+
+__Write an SQL query that provides playerID, yearID, and batting average for players with at least 1 at bat that year. Sort the table from highest batting average to lowest, and then by playerid alphabetically. Show the top 5 results in your report.__
+
+With at least 1 at-bat as the filter, the top results are all players who went 1-for-1 (a perfect 1.000 batting average). These are usually pitchers or position players who had a single plate appearance in a season. The results are sorted alphabetically by playerID among those tied at 1.000, so the top 5 are just the first five alphabetically. This shows that a very low at-bat minimum produces misleading results since a single hit gives a perfect average.
+
+```{python}
+# Batting average = H / AB
+# Group by playerID and yearID to handle players with multiple stints (teams) in one year
+# HAVING filters after aggregation to keep only players with at least 1 AB
+
+q = """
+    SELECT playerID, yearID, CAST(SUM(H) AS FLOAT) / SUM(AB) AS batting_avg
+    FROM Batting
+    GROUP BY playerID, yearID
+    HAVING SUM(AB) >= 1
+    ORDER BY batting_avg DESC, playerID ASC
+    LIMIT 5
+    """
+results = pl.read_database(q, con)
+results
+
+
+```
+
+
+## QUESTION 2
+
+__Use the same query as above, but only include players with at least 10 at bats that year. Print the top 5 results.__
+
+Raising the minimum to 10 at-bats removes the 1-for-1 outliers and shows pretty high single-season batting averages. The top result is nymanny01 in 1974 with a batting average of approximately 0.643, meaning they got a hit in almost two-thirds of their at-bats that season. Even with 10 ABs as the floor, these are still small samples compared to a full season (typically 400–600 AB), so the averages remain unusually high compared to what we would normally see over a full career.
+
+```{python}
+# Same query as Q1 but with the minimum at-bat threshold raised to 10
+
+q = """
+    SELECT playerID, yearID, CAST(SUM(H) AS FLOAT) / SUM(AB) AS batting_avg
+    FROM Batting
+    GROUP BY playerID, yearID
+    HAVING SUM(AB) >= 10
+    ORDER BY batting_avg DESC, playerID ASC
+    LIMIT 5
+    """
+results = pl.read_database(q, con)
+results
+
+
+```
+
+
+## QUESTION 3
+
+__Now modify the SQL query to calculate the batting average for players over their entire careers (all years combined). Only include players with at least 100 at bats over their entire career, and print the top 5 results.__
+
+Adding across a player's entire career and requiring at least 100 career at-bats gives the most accurate measure of hitting ability. Ty Cobb (cobbty01) leads with a career batting average of approximately 0.366, which is the highest in Major League Baseball history. The other names — Rogers Hornsby (hornsro01), Shoeless Joe Jackson (jacksjo01), and others — are all legendary hitters from the early 20th century. Career averages are far lower than the single-season peaks seen above because the large sample size factors out lucky short-run streaks.
+
+```{python}
+# Remove yearID from SELECT and GROUP BY to aggregate across all seasons
+# HAVING now filters on total career AB (>= 100)
+
+q = """
+    SELECT playerID, CAST(SUM(H) AS FLOAT) / SUM(AB) AS career_batting_avg
+    FROM Batting
+    GROUP BY playerID
+    HAVING SUM(AB) >= 100
+    ORDER BY career_batting_avg DESC, playerID ASC
+    LIMIT 5
+    """
+results = pl.read_database(q, con)
+results
+```
