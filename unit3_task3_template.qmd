@@ -1,0 +1,110 @@
+---
+title: "Client Report - Joins"
+subtitle: "Unit 3 Task 3"
+author: "Ethan Neunhoffer"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute:
+  warning: false
+
+---
+
+```{python}
+import polars as pl
+import numpy as np
+import sqlite3
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+# Learn morea about Code Cells: https://quarto.org/docs/reference/cells/cells-jupyter.html
+
+# Include and execute your code here
+sqlite_file = 'lahmansbaseballdb.sqlite'
+# this file must be in the same location as your .qmd or .py file
+con = sqlite3.connect(sqlite_file)
+```
+
+## QUESTION 1
+
+__Write an SQL query that pulls in the the salaries table and the collegeplaying table (and any other tables you might need) and store them in polars dataframes. In Python Polars, combine the dataframes to create a list of baseball players who attended BYU-Idaho. The new table should contain five columns: playerID, schoolID, salary, yearID and teamID associated with each salary.__
+
+So it turns out only one player in the database went to BYU-Idaho and actually has salary data — Matt Lindstrom. He bounced around a few teams from like 2007 to 2014 and his salary went from $380k with the Marlins all the way up to $4 million with the White Sox which is pretty cool. I had to use `.unique()` in polars because the collegeplaying table has a row for every year someone attended a school so without that you get a ton of duplicate rows in the salary data.
+
+```{python}
+q_college = """
+    SELECT playerID, schoolID
+    FROM collegeplaying
+    WHERE schoolID = 'idbyuid'
+"""
+
+q_salaries = """
+    SELECT playerID, salary, yearID, teamID
+    FROM salaries
+"""
+
+college_df = pl.read_database(q_college, con)
+salaries_df = pl.read_database(q_salaries, con)
+
+byui_players = (
+    college_df
+    .join(salaries_df, on="playerID", how="inner")
+    .select(["playerID", "schoolID", "salary", "yearID", "teamID"])
+    .unique()
+    .sort(["playerID", "yearID"])
+)
+
+byui_players
+```
+
+
+## QUESTION 2
+
+1. Pick any two baseball teams and compare them using a metric of your choice (average salary, home runs, number of wins, etc). Be creative! Write an SQL query to read in the table(s) you need, then use polars to manipulate the data. Finally, make a graph using Lets-Plot to visualize the comparison. What do you learn?
+
+I looked at the Yankees vs Red Sox since that's probably the most well known rivalry in baseball. I compared their average player salary per year from 1985 to 2016. The Yankees pretty much always spent way more money, especially in the late 90s/early 2000s which makes sense since they won like everything back then. The Red Sox started catching up around 2004 which is right when they finally broke the curse and won the World Series. Both teams are clearly in a different spending tier than most of the league but spending more doesn't automatically mean you win, so it's kinda interesting to look at.
+
+```{python}
+q = """
+    SELECT teamID, yearID, AVG(salary) AS avg_salary
+    FROM salaries
+    WHERE teamID IN ('NYA', 'BOS')
+    GROUP BY teamID, yearID
+    ORDER BY yearID
+"""
+
+team_salary = pl.read_database(q, con)
+
+(
+    ggplot(team_salary, aes(x="yearID", y="avg_salary", color="teamID"))
+    + geom_line(size=1.2)
+    + geom_point(size=2)
+    + scale_color_manual(values={"NYA": "#003087", "BOS": "#BD3039"})
+    + labs(
+        title="Yankees vs Red Sox: Average Player Salary by Year",
+        x="Year",
+        y="Average Salary (USD)",
+        color="Team"
+    )
+    + theme_light()
+)
+```

@@ -1,0 +1,143 @@
+---
+title: "Client Report - Longevity and Highest Paid Positions"
+subtitle: "Unit 3 Stretch Task"
+author: "Ethan Neunhoffer"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute:
+  warning: false
+
+---
+
+```{python}
+import polars as pl
+import numpy as np
+import sqlite3
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+```{python}
+sqlite_file = 'lahmansbaseballdb.sqlite'
+con = sqlite3.connect(sqlite_file)
+```
+
+## QUESTION 1
+
+__Identify the top 10 players with the longest Major League Baseball careers, including their playerID, first_name, last_name, and career_length.__
+
+Most of the guys on this list played back in the 1800s which makes sense since careers were just longer back then. Jim O'Rourke is at the top with over 32 years which is crazy. I measured career length as the difference between debut date and final game date in years.
+
+```{python}
+q_people = """
+    SELECT
+        playerID,
+        nameFirst AS first_name,
+        nameLast  AS last_name,
+        debut_date,
+        finalgame_date
+    FROM people
+    WHERE debut_date IS NOT NULL
+      AND finalgame_date IS NOT NULL
+"""
+
+people_df = pl.read_database(q_people, con)
+
+career = (
+    people_df
+    .with_columns([
+        pl.col("debut_date").cast(pl.Date),
+        pl.col("finalgame_date").cast(pl.Date)
+    ])
+    .with_columns(
+        (
+            (pl.col("finalgame_date") - pl.col("debut_date")).dt.total_days() / 365.25
+        ).round(1).alias("career_length")
+    )
+    .select(["playerID", "first_name", "last_name", "career_length"])
+    .sort("career_length", descending=True)
+    .head(10)
+)
+
+career
+```
+
+
+## QUESTION 2
+
+__Create a summary table showing the average salary, total players, and highest salary for each fielding position. Add a salary label column and order by average salary descending.__
+
+For players who played multiple positions in the same year, I counted their salary toward whichever position they played the most games at. That felt like the best way to do it since that's really where they spent their time. Pitchers ended up with the highest average salary which makes sense, and most other positions fell into low salary which surprised me a little.
+
+```{python}
+q_salaries = """
+    SELECT playerID, yearID, salary
+    FROM salaries
+"""
+
+q_fielding = """
+    SELECT playerID, yearID, POS, G
+    FROM fielding
+"""
+
+salaries_df = pl.read_database(q_salaries, con)
+fielding_df = pl.read_database(q_fielding, con)
+
+primary_pos = (
+    fielding_df
+    .with_columns(pl.col("G").fill_null(0))
+    .group_by(["playerID", "yearID"])
+    .agg(
+        pl.col("POS").sort_by("G", descending=True).first().alias("primary_pos")
+    )
+)
+
+sal_with_pos = (
+    salaries_df
+    .join(primary_pos, on=["playerID", "yearID"], how="left")
+    .filter(pl.col("primary_pos").is_not_null())
+)
+
+summary = (
+    sal_with_pos
+    .group_by("primary_pos")
+    .agg([
+        pl.col("salary").mean().alias("average_salary"),
+        pl.col("playerID").n_unique().alias("total_players"),
+        pl.col("salary").max().alias("highest_salary")
+    ])
+    .rename({"primary_pos": "position"})
+    .with_columns(
+        pl.when(pl.col("average_salary") > 3_000_000)
+          .then(pl.lit("High Salary"))
+          .when(pl.col("average_salary") >= 2_000_000)
+          .then(pl.lit("Medium Salary"))
+          .otherwise(pl.lit("Low Salary"))
+          .alias("salary_label")
+    )
+    .with_columns([
+        pl.col("average_salary").round(0).cast(pl.Int64),
+        pl.col("highest_salary").cast(pl.Int64)
+    ])
+    .sort("average_salary", descending=True)
+)
+
+summary
+```
