@@ -2278,7 +2278,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 <section id="question-1" class="level2">
 <h2 class="anchored" data-anchor-id="question-1">QUESTION 1</h2>
 <p><strong>Identify the top 10 players with the longest Major League Baseball careers, including their playerID, first_name, last_name, and career_length.</strong></p>
-<p>The longest MLB careers are dominated by players from the late 1800s and early 1900s, when roster rules and contract structures were very different. Jim O’Rourke tops the list with over 32 years between his debut and final game, which is almost unimaginable by modern standards. Most players on this list had careers spanning 25+ years, and several of the names are Hall of Famers. Career length here is measured from debut date to final game date in years, which is straightforward and consistent — it captures how long a player was actively in the major leagues regardless of how many games they actually played each season.</p>
+<p>Most of the guys on this list played back in the 1800s which makes sense since careers were just longer back then. Jim O’Rourke is at the top with over 32 years which is crazy. I measured career length as the difference between debut date and final game date in years.</p>
 <div id="7837293e" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Show the code</summary>
@@ -2408,7 +2408,7 @@ white-space: pre-wrap;
 <section id="question-2" class="level2">
 <h2 class="anchored" data-anchor-id="question-2">QUESTION 2</h2>
 <p><strong>Create a summary table showing the average salary, total players, and highest salary for each fielding position. Add a salary label column and order by average salary descending.</strong></p>
-<p>To handle players who appear at multiple positions in a single year, I assigned each player’s salary to the position where they played the most games (the <code>G</code> column in the fielding table). This is a sensible approach because it reflects where that player actually spent most of their time — a player who played 120 games at shortstop and 2 games at first base is really a shortstop, not a first baseman. Counting their salary toward their dominant position gives a more accurate picture of what teams are paying for each role. Pitchers (P) unsurprisingly lead the salary table given how teams invest in elite starting and relief arms, while OF, 1B, and SS also land in the high-salary tier. Backup/defensive positions like 2B, C, and 3B tend to fall in the medium range, and rare or utility positions land at the bottom.</p>
+<p>For players who played multiple positions in the same year, I counted their salary toward whichever position they played the most games at. That felt like the best way to do it since that’s really where they spent their time. Pitchers ended up with the highest average salary which makes sense, and most other positions fell into low salary which surprised me a little.</p>
 <div id="bc36d899" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Show the code</summary>
