@@ -1,0 +1,208 @@
+---
+title: "Client Report -How good is it, really?"
+subtitle: "Unit 4 Task 2"
+author: "Ethan Neunhoffer"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute:
+  warning: false
+
+---
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.inspection import permutation_importance
+
+LetsPlot.setup_html(isolated_frame=True)
+
+url = "https://raw.githubusercontent.com/byuidatascience/data4dwellings/master/data-raw/dwellings_ml/dwellings_ml.csv"
+df = pl.read_csv(url)
+
+df_plot = df.with_columns(
+    pl.col("before1980").cast(pl.Utf8).replace({"1": "Before 1980", "0": "1980 or After"}).alias("era")
+)
+
+# build and fit the same model from Task 1
+features = df.drop(["parcel", "yrbuilt", "before1980"])
+feature_names = features.columns
+
+X = features.to_numpy()
+y = df["before1980"].to_numpy()
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+clf = RandomForestClassifier(n_estimators=150, random_state=42)
+clf.fit(X_train, y_train)
+
+y_pred = clf.predict(X_test)
+```
+
+
+## QUESTION 1
+
+1. __Describe the quality of your classification model using 2-3 different evaluation metrics.__ You also need to explain how to define/interpret each of the evaluation metrics you use.
+
+I used three metrics to check how well the model is doing. Accuracy is just the percent of predictions that were right — ours is around 93%. Precision tells you how often the model is right when it says "before 1980", and recall tells you how many of the actual pre-1980 homes it caught. Recall matters more here because missing one of those homes is a bigger deal than a false alarm. The confusion matrix just shows all four outcomes (right/wrong for each class) in a grid so you can see exactly where errors are happening.
+
+```{python}
+accuracy = metrics.accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)\n")
+
+report = metrics.classification_report(y_test, y_pred, target_names=["1980 or After", "Before 1980"], output_dict=True)
+print("Classification Report:")
+print(f"{'':>15} {'precision':>10} {'recall':>8}")
+for label in ["1980 or After", "Before 1980"]:
+    p = report[label]["precision"]
+    r = report[label]["recall"]
+    print(f"{label:>15} {p:>10.2f} {r:>8.2f}")
+
+cm = metrics.confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:")
+print(cm)
+```
+
+```{python}
+# visualize the confusion matrix
+cm_df = pl.DataFrame({
+    "Actual": ["1980 or After", "1980 or After", "Before 1980", "Before 1980"],
+    "Predicted": ["1980 or After", "Before 1980", "1980 or After", "Before 1980"],
+    "Count": [int(cm[0, 0]), int(cm[0, 1]), int(cm[1, 0]), int(cm[1, 1])]
+})
+
+(
+    ggplot(cm_df, aes(x="Predicted", y="Actual", fill="Count"))
+    + geom_tile()
+    + geom_text(aes(label="Count"), color="white", size=14)
+    + scale_fill_gradient(low="#4393c3", high="#08306b")
+    + labs(title="Confusion Matrix", x="Predicted", y="Actual")
+    + theme_light()
+)
+```
+
+
+## QUESTION 2
+
+1. __Justify your classification model by discussing the most important features selected by your model.__ This discussion should include a plot of permutation importance values for the most important features. Were there any features you thought would be importance but weren't?
+
+I used permutation importance, which works by shuffling one feature at a time and seeing how much the accuracy drops. The top three ended up being `livearea`, `sprice`, and `arcstyle_ONE-STORY`, which is pretty much what I guessed in Task 1. I thought `basement` and the garage columns might matter more than they did, but they were near the bottom — the model mostly just needed size and price to figure it out.
+
+```{python}
+# permutation importance on the test set
+perm = permutation_importance(clf, X_test, y_test, n_repeats=10, random_state=42, n_jobs=-1)
+
+perm_df = (
+    pl.DataFrame({
+        "feature": feature_names,
+        "importance": perm.importances_mean.tolist()
+    })
+    .sort("importance", descending=True)
+    .head(15)
+)
+
+(
+    ggplot(perm_df, aes(x="importance", y="feature"))
+    + geom_bar(stat="identity", fill="#4393c3")
+    + labs(title="Top 15 Features by Permutation Importance", x="Mean Accuracy Drop", y="Feature")
+    + theme_light()
+)
+```
+
+## QUESTION 3
+
+1. __For the 3 most important features, explain their relationship to the target variable. Use a plot to illustrate the relationship.__ (3 plots minimum)
+
+The top three features were `livearea`, `sprice`, and `arcstyle_ONE-STORY`. For living area, older homes are almost all on the smaller end — once you get above 2500 sq ft it's mostly post-1980. Sale price follows the same pattern since smaller homes sell for less. The one-story thing surprised me a little but makes sense — ranch-style homes were really common before 1980 and the charts show a clear difference between the two groups.
+
+```{python}
+# Plot 1: living area vs era
+livearea_counts = (
+    df_plot
+    .filter(pl.col("livearea") <= 4000)
+    .with_columns(
+        pl.col("livearea")
+        .cut([1000, 1500, 2000, 2500, 3000], labels=["<1000", "1000-1500", "1500-2000", "2000-2500", "2500-3000", ">3000"])
+        .alias("livearea_bin")
+    )
+    .group_by(["livearea_bin", "era"])
+    .agg(pl.len().alias("count"))
+    .sort("livearea_bin")
+)
+
+(
+    ggplot(livearea_counts, aes(x="livearea_bin", y="count", fill="era"))
+    + geom_bar(stat="identity", position="fill")
+    + scale_fill_manual(values=["#4393c3", "#d6604d"])
+    + labs(title="Living Area vs Era", x="Living Area (sq ft)", y="Proportion", fill="Era")
+    + theme_light()
+    + theme(legend_position="bottom")
+)
+```
+
+```{python}
+# Plot 2: sale price vs era
+sprice_counts = (
+    df_plot
+    .filter(pl.col("sprice") <= 600000)
+    .with_columns(
+        pl.col("sprice")
+        .cut([100000, 200000, 300000, 400000, 500000], labels=["<100k", "100-200k", "200-300k", "300-400k", "400-500k", ">500k"])
+        .alias("sprice_bin")
+    )
+    .group_by(["sprice_bin", "era"])
+    .agg(pl.len().alias("count"))
+    .sort("sprice_bin")
+)
+
+(
+    ggplot(sprice_counts, aes(x="sprice_bin", y="count", fill="era"))
+    + geom_bar(stat="identity", position="fill")
+    + scale_fill_manual(values=["#4393c3", "#d6604d"])
+    + labs(title="Sale Price vs Era", x="Sale Price", y="Proportion", fill="Era")
+    + theme_light()
+    + theme(legend_position="bottom")
+)
+```
+
+```{python}
+# Plot 3: one-story architectural style vs era
+# arcstyle_ONE-STORY is a binary dummy column (1 = one-story, 0 = not)
+one_story_counts = (
+    df_plot
+    .with_columns(
+        pl.col("arcstyle_ONE-STORY").cast(pl.Utf8).replace({"1": "One-Story", "0": "Other Style"}).alias("style")
+    )
+    .group_by(["style", "era"])
+    .agg(pl.len().alias("count"))
+    .sort("style")
+)
+
+(
+    ggplot(one_story_counts, aes(x="style", y="count", fill="era"))
+    + geom_bar(stat="identity", position="fill")
+    + scale_fill_manual(values=["#4393c3", "#d6604d"])
+    + labs(title="Architectural Style (One-Story) vs Era", x="Architectural Style", y="Proportion", fill="Era")
+    + theme_light()
+    + theme(legend_position="bottom")
+)
+```
