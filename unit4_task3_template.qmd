@@ -1,0 +1,160 @@
+---
+title: "Client Report - Show me!"
+subtitle: "Unit 4 Task 3"
+author: "Ethan Neunhoffer"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute:
+  warning: false
+
+---
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.inspection import permutation_importance
+
+LetsPlot.setup_html(isolated_frame=True)
+
+url = "https://raw.githubusercontent.com/byuidatascience/data4dwellings/master/data-raw/dwellings_ml/dwellings_ml.csv"
+df = pl.read_csv(url)
+
+features = df.drop(["parcel", "yrbuilt", "before1980"])
+feature_names = features.columns
+
+X = features.to_numpy()
+y = df["before1980"].to_numpy()
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+```
+
+
+## QUESTION 1
+
+1. __Repeat the classification exercise using 2 different algorithms/models. Explain the differences between the 3 models__ (your original one, and the 2 new ones for this task).
+
+The original model from Task 2 was a Random Forest with 150 trees. The idea is that each tree gets trained on a random chunk of the data and features, then they all vote together. It works pretty well because the errors from individual trees tend to cancel out.
+
+For the two new models I picked a Decision Tree and a Gradient Boosting classifier. The Decision Tree is basically just one tree instead of 150 — it keeps splitting the data on whatever feature helps the most until it hits a depth limit. It's really easy to understand but on its own it tends to overfit, so I capped it at depth 10. Gradient Boosting also uses a bunch of trees, but it builds them one at a time where each new tree is trying to fix the mistakes the last one made. It's slower to train but usually the most accurate of the three.
+
+```{python}
+# Model 1 (original): Random Forest
+rf = RandomForestClassifier(n_estimators=150, random_state=42)
+rf.fit(X_train, y_train)
+rf_pred = rf.predict(X_test)
+
+# Model 2: Decision Tree
+dt = DecisionTreeClassifier(max_depth=10, random_state=42)
+dt.fit(X_train, y_train)
+dt_pred = dt.predict(X_test)
+
+# Model 3: Gradient Boosting
+gb = GradientBoostingClassifier(n_estimators=150, learning_rate=0.1, max_depth=4, random_state=42)
+gb.fit(X_train, y_train)
+gb_pred = gb.predict(X_test)
+
+# Quick accuracy summary
+for name, pred in [("Random Forest", rf_pred), ("Decision Tree", dt_pred), ("Gradient Boosting", gb_pred)]:
+    acc = metrics.accuracy_score(y_test, pred)
+    print(f"{name:>20}: {acc:.4f} ({acc*100:.2f}%)")
+```
+
+
+## QUESTION 2
+
+1. For each model (your original one, and the 2 new ones for this task), display the classification report and the permutation importances for the most important features.  Discuss which model you would recommend to the Client and why.
+
+All three models did pretty well but Gradient Boosting came out on top, with Random Forest close behind and the single Decision Tree trailing a bit. For this problem I care more about recall on the "Before 1980" class than overall accuracy — you really don't want to miss a home that might have asbestos. The permutation importance charts look pretty similar across all three models, with `livearea`, `sprice`, and `arcstyle_ONE-STORY` showing up as the biggest features every time.
+
+I'd recommend Gradient Boosting to the client. It had the best recall on the pre-1980 class and the accuracy was slightly higher than Random Forest. It takes longer to train but that only happens once, and the difference in performance is worth it when the stakes are health and safety.
+
+```{python}
+# --- Classification Reports ---
+for name, pred in [("Random Forest", rf_pred), ("Decision Tree", dt_pred), ("Gradient Boosting", gb_pred)]:
+    print(f"\n{'='*50}")
+    print(f"  {name}")
+    print('='*50)
+    r = metrics.classification_report(y_test, pred, target_names=["1980 or After", "Before 1980"], output_dict=True)
+    print(f"{'':>15} {'precision':>9} {'recall':>9}")
+    for label in ["1980 or After", "Before 1980"]:
+        print(f"{label:>15} {r[label]['precision']:>9.2f} {r[label]['recall']:>9.2f}")
+    print(f"{'accuracy':>15} {'':>9} {r['accuracy']:>9.2f}")
+    print(f"{'macro avg':>15} {r['macro avg']['precision']:>9.2f} {r['macro avg']['recall']:>9.2f}")
+    print(f"{'weighted avg':>15} {r['weighted avg']['precision']:>9.2f} {r['weighted avg']['recall']:>9.2f}")
+```
+
+```{python}
+# --- Permutation Importances ---
+# Run for all three models (n_repeats=10 each)
+perm_rf = permutation_importance(rf, X_test, y_test, n_repeats=10, random_state=42, n_jobs=-1)
+perm_dt = permutation_importance(dt, X_test, y_test, n_repeats=10, random_state=42, n_jobs=-1)
+perm_gb = permutation_importance(gb, X_test, y_test, n_repeats=10, random_state=42, n_jobs=-1)
+
+def make_perm_df(perm_result, names, top_n=15):
+    return (
+        pl.DataFrame({
+            "feature": list(names),
+            "importance": perm_result.importances_mean.tolist()
+        })
+        .sort("importance", descending=True)
+        .head(top_n)
+    )
+
+perm_rf_df = make_perm_df(perm_rf, feature_names)
+perm_dt_df = make_perm_df(perm_dt, feature_names)
+perm_gb_df = make_perm_df(perm_gb, feature_names)
+```
+
+```{python}
+# Plot: Random Forest permutation importance
+(
+    ggplot(perm_rf_df, aes(x="importance", y="feature"))
+    + geom_bar(stat="identity", fill="#4393c3")
+    + labs(title="Random Forest — Top 15 Features by Permutation Importance",
+           x="Mean Accuracy Drop", y="Feature")
+    + theme_light()
+)
+```
+
+```{python}
+# Plot: Decision Tree permutation importance
+(
+    ggplot(perm_dt_df, aes(x="importance", y="feature"))
+    + geom_bar(stat="identity", fill="#74c476")
+    + labs(title="Decision Tree — Top 15 Features by Permutation Importance",
+           x="Mean Accuracy Drop", y="Feature")
+    + theme_light()
+)
+```
+
+```{python}
+# Plot: Gradient Boosting permutation importance
+(
+    ggplot(perm_gb_df, aes(x="importance", y="feature"))
+    + geom_bar(stat="identity", fill="#d6604d")
+    + labs(title="Gradient Boosting — Top 15 Features by Permutation Importance",
+           x="Mean Accuracy Drop", y="Feature")
+    + theme_light()
+)
+```
