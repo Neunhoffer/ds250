@@ -1,0 +1,133 @@
+---
+title: "Client Report - Star Wars for Dummies"
+subtitle: "Unit 5 Task 1"
+author: "Ethan Neunhoffer"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute:
+  warning: false
+
+---
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+import polars.selectors as cs
+
+LetsPlot.setup_html(isolated_frame=True)
+
+data_url = "https://byuidatascience.github.io/DS250-Course-Polars/Data/StarWars_with_emails.csv"
+```
+
+```{python}
+# clean up the first header row
+a = pl.Series(pl.read_csv(data_url, skip_rows=10, n_rows=1, has_header=False, encoding='utf8-lossy').row(0))
+
+a[2] = "seen_any"
+
+a = (
+  a.str.replace(r".+seen.+", "seen_")
+   .str.replace(r".+rank.+", "rank_")
+   .str.replace(r"(.+favorably.+)", "fav_")
+   .fill_null(strategy="forward")
+   .str.replace("�+", "")
+   .str.strip_chars()
+   .str.to_lowercase()
+   .str.replace_all(" ", "_")
+   .str.replace(r"location(.+)", "location")
+)
+a[3] = "star_wars_fan"
+a[30] = "who_shot_first"
+a[31] = "know_expanded_universe"
+a[32] = "expanded_universe_fan"
+a[33] = "star_trek_fan"
+```
+
+```{python}
+# clean up the second header row
+b = pl.Series(pl.read_csv(data_url, skip_rows=11, n_rows=1, has_header=False, encoding='utf8-lossy').row(0))
+
+b = (
+  b.str.replace(r"Star Wars: (Episode \w+) .+", "${1}")
+   .str.replace("Response", "")
+   .str.replace_all(" ", "_")
+   .fill_null("")
+   .str.strip_chars()
+)
+```
+
+```{python}
+# combine header rows and read the actual data
+new_names = (a + b).to_list()
+
+df = pl.read_csv(data_url, skip_rows=12, has_header=False, new_columns=new_names)
+```
+
+
+## Executive Summary
+
+- Used regex to pull first name, last name, and email domain out of the email column for each respondent.
+- Counted how many times each domain appears after normalizing to lowercase.
+- **Stretch: No**
+
+
+## Methods
+
+The raw CSV has 10 rows of metadata before the data starts and the column headers are split across two rows, so the loading code above handles all of that before we get to the actual analysis.
+
+**Q2 — Extracting names and domain from email**
+
+Each email has the name formatted differently — some use a period, some use an underscore. I used regex to grab everything before the separator as the first name, everything between the separator and the `@` as the last name, and everything after the `@` as the domain.
+
+```{python}
+df_names = df.with_columns([
+    pl.col("email").str.extract(r"^([A-Za-z]+)[._]", 1).alias("first_name"),
+    pl.col("email").str.extract(r"[._]([A-Za-z]+)@", 1).alias("last_name"),
+    pl.col("email").str.extract(r"@(.+)$", 1).alias("email_domain"),
+])
+
+df_names.select(["email", "first_name", "last_name", "email_domain"]).head(5)
+```
+
+**Q3 — Domain count table**
+
+I lowercased the domain before counting so things like `Gmail.com` and `gmail.com` don't get counted separately.
+
+```{python}
+domain_counts = (
+    df_names
+    .with_columns(pl.col("email_domain").str.to_lowercase().alias("email_domain"))
+    .group_by("email_domain")
+    .agg(pl.len().alias("count"))
+    .sort("count", descending=True)
+)
+
+domain_counts
+```
+
+
+## Results
+
+_To be completed in the full unit report._
+
+
+## Conclusion
+
+_To be completed in the full unit report._
