@@ -1,0 +1,312 @@
+---
+title: "Client Report - Star Wars for Dummies"
+subtitle: "Unit 5 Task 3"
+author: "Ethan Neunhoffer"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+import polars.selectors as cs
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+
+LetsPlot.setup_html(isolated_frame=True)
+
+data_url = "https://byuidatascience.github.io/DS250-Course-Polars/Data/StarWars_with_emails.csv"
+```
+
+<!-- The first 10 rows are not part of the datset we need.
+
+The columns headers are split across two rows. We need to clean and simplify the column headers-->
+
+```{python}
+# Read in and tidy up the first row
+a = pl.Series(pl.read_csv(data_url, skip_rows = 10, n_rows=1, has_header=False, encoding = 'utf8-lossy').row(0))
+# Note the non-aschii character in the column "Do you consider yourself to be a fan of the Expanded Universe". (column AF if you open it in Excel). 
+
+# BTW: Detecting what it is and where can be difficult
+
+# Lossy means that invalid utf8 values are replaced with � characters. When using other encodings than utf8 or utf8-lossy, the input is first decoded in memory with python. Defaults to utf8...ignore_errors = True does not replace the non-utf8 character with a blank space like you would hope
+
+a[2] = "seen_any" #simply overwrite the value at index 2
+
+# Rather than changing each column header manually,
+# here we use regex to apply changes more efficiently
+a = (
+  a.str.replace(r".+seen.+", "seen_")
+   .str.replace(r".+rank.+", "rank_")
+   .str.replace(r"(.+favorably.+)", "fav_")
+   .fill_null(strategy = "forward")
+
+   .str.replace("\uFFFD+", "") #this gets rid of the question marks in a diamond characters 
+   .str.strip_chars()
+   .str.to_lowercase()
+   .str.replace_all(" ", "_")
+   .str.replace(r"location(.+)", "location")
+
+)
+a[3] = "star_wars_fan"
+a[30] = "who_shot_first"
+a[31] = "know_expanded_universe"
+a[32] = "expanded_universe_fan"
+a[33] = "star_trek_fan"
+```
+
+<!-- Combine series q and a into one series to be used as column names-->
+
+```{python}
+b = pl.Series(pl.read_csv(data_url, skip_rows = 11, n_rows=1, has_header=False, encoding = 'utf8-lossy').row(0))
+
+b = (
+  b.str.replace(r"Star Wars: (Episode \w+) .+", "${1}")
+   .str.replace("Response", "")
+   .str.replace_all(" ", "_")
+   .fill_null("")
+   .str.strip_chars()
+)
+
+```
+
+```{python}
+#Now combine the two series, each of which contains part of the desired column header
+new_names = (a + b).to_list()
+
+# Read in the data, skipping over the column header rows
+# and use 'new_names' as the column headers
+df = pl.read_csv(data_url, skip_rows=12, has_header=False, new_columns = new_names )
+```
+
+
+<!-- Rather than a simple write up like we have been doing so far, this project requires a more structured approach. You will need to show you have completed the tasks, but will structure the report in a way that is more like a client report. The report will be structured as follows:
+
+ - Executive Summary: This is a high level overview of the analysis, including the problem statement, the data used, and the main findings. It should be concise and to the point, summarizing the key insights/recommendations without going into too much detail. These are usually bullet points, no graphs. PLEASE EXPLICITLY STATE IN THIS SECTION WHETHER YOU DID THE STRETCH OR NOT! 
+ - Methods: this is a high level overview of the methods used in the analysis. This should include an explanation of data preparation steps, especially how you dealt with each categorical variable and why. Showing the resulting or original distribution of variables may be helpful. Describe how you handled missing values and outliers. How did/might your decisions impact results?Explain any feature engineering steps you took. This is also where you will put the graphs you recreated to show you validated the dataset and that it matches the article.
+ - Results: this is a more in-depth explanation of results. A classification report and feature importance graphs belong here.
+ - Conclusion: this is where you will discuss the implication of the results, including any limitations of the analysis, and recommendations for actions/future work. It may feel repetitive to the executive summary, but it should be more detailed and include any additional insights you gained from the analysis. -->
+
+
+## Executive Summary
+
+- Filtered to 835 respondents who have seen at least one Star Wars film.
+- Recreated two charts from the FiveThirtyEight article to validate the dataset.
+- Recoded age, education, income, and favorability columns to ordinal integers for use in a machine learning model.
+- Trained a Random Forest to predict whether a respondent earns at least $50k; education and age were the strongest predictors.
+- **Stretch: No**
+
+
+## Methods
+
+### Filtering to 835 Respondents
+
+```{python}
+seen_ep_cols = [c for c in df.columns if c.startswith("seen_") and c != "seen_any"]
+
+df_filtered = df.filter(
+    pl.any_horizontal([pl.col(c).is_not_null() for c in seen_ep_cols])
+)
+
+print(f"Rows after filter: {len(df_filtered)}")
+```
+
+### Article Validation
+
+**Chart 1 — Which films have respondents seen?**
+
+```{python}
+total = len(df_filtered)
+
+seen_data = pl.DataFrame({
+    "film": ["Episode I", "Episode II", "Episode III", "Episode IV", "Episode V", "Episode VI"],
+    "pct": [
+        round(df_filtered[c].is_not_null().sum() / total * 100, 1)
+        for c in seen_ep_cols
+    ],
+})
+
+(
+    ggplot(seen_data, aes(x=as_discrete("film", order_by="pct", order=1), y="pct"))
+    + geom_bar(stat="identity", fill="#438CC4")
+    + coord_flip()
+    + scale_y_continuous(limits=[0, 100])
+    + labs(title="Which Star Wars Films Have You Seen?", x="", y="% of Respondents")
+    + theme_minimal()
+)
+```
+
+**Chart 2 — Character favorability**
+
+```{python}
+fav_raw_cols = [c for c in df_filtered.columns if c.startswith("fav_")]
+
+fav_summary = []
+for c in fav_raw_cols:
+    char = c.replace("fav_", "").replace("_", " ")
+    total_familiar = df_filtered.filter(
+        pl.col(c).is_not_null() & (pl.col(c) != "Unfamiliar (N/A)")
+    ).height
+    favorable = df_filtered.filter(
+        pl.col(c).is_in(["Very favorably", "Somewhat favorably"])
+    ).height
+    pct = round(favorable / total_familiar * 100, 1) if total_familiar > 0 else 0
+    fav_summary.append({"character": char, "pct_favorable": pct})
+
+fav_data = pl.DataFrame(fav_summary).sort("pct_favorable", descending=True)
+
+(
+    ggplot(fav_data, aes(x=as_discrete("character", order_by="pct_favorable", order=1), y="pct_favorable"))
+    + geom_bar(stat="identity", fill="#438CC4")
+    + coord_flip()
+    + labs(title="Character Favorability", x="", y="% Favorable")
+    + theme_minimal()
+)
+```
+
+### Recoding Range Variables
+
+Age, education, income, and favorability columns were each replaced with an ordinal integer. The original columns were dropped. The table below shows the first five rows of the reformatted data.
+
+```{python}
+age_map = {"18-29": 1, "30-44": 2, "45-60": 3, "> 60": 4}
+
+edu_map = {
+    "Less than high school degree": 1,
+    "High school degree": 2,
+    "Some college or Associate degree": 3,
+    "Bachelor degree": 4,
+    "Graduate degree": 5,
+}
+
+income_map = {
+    "$0 - $24,999": 1,
+    "$25,000 - $49,999": 2,
+    "$50,000 - $99,999": 3,
+    "$100,000 - $149,999": 4,
+    "$150,000+": 5,
+}
+
+fav_map = {
+    "Unfamiliar (N/A)": 0,
+    "Very unfavorably": 1,
+    "Somewhat unfavorably": 2,
+    "Neither favorably nor unfavorably (neutral)": 3,
+    "Somewhat favorably": 4,
+    "Very favorably": 5,
+}
+
+fav_cols = [c for c in df_filtered.columns if c.startswith("fav_")]
+
+df_ml = (
+    df_filtered
+    .with_columns(
+        pl.col("age").replace(age_map).cast(pl.Int8).alias("age_num"),
+        pl.col("education").replace(edu_map).cast(pl.Int8).alias("education_num"),
+        pl.col("household_income").replace(income_map).cast(pl.Int8).alias("income_num"),
+        *[pl.col(c).replace(fav_map).cast(pl.Int8).alias(c + "_num") for c in fav_cols],
+    )
+    .drop(["age", "education", "household_income"] + fav_cols)
+)
+
+df_ml.select(
+    ["age_num", "education_num", "income_num"] + [c + "_num" for c in fav_cols[:3]]
+).head(5)
+```
+
+
+### Missing Values
+
+Missing values showed up in a few places. Respondents who didn't answer the income question got dropped completely since income is the target — you can't train on a row with no label. Everything else got filled with 0. For the binary columns like whether someone saw a film or considers themselves a fan, 0 already means "no" so that works fine. For the favorability columns it's a little messier since 0 technically maps to "Unfamiliar," but treating a blank the same as unfamiliar is probably the closest thing to a reasonable assumption here. Dropping income non-responses brought the dataset down from 835 to around 600 rows, which is worth keeping in mind when looking at the results.
+
+
+## Results
+
+### Classification Report
+
+```{python}
+df_pd = df_ml.to_pandas()
+df_pd = df_pd.dropna(subset=["income_num"])
+
+y = (df_pd["income_num"] >= 3).astype(int)
+
+for c in seen_ep_cols:
+    df_pd[c + "_bin"] = df_pd[c].notna().astype(int)
+
+for c in ["star_wars_fan", "star_trek_fan", "know_expanded_universe", "expanded_universe_fan"]:
+    if c in df_pd.columns:
+        df_pd[c + "_bin"] = (df_pd[c] == "Yes").astype(int)
+
+df_pd["gender_bin"] = (df_pd["gender"] == "Male").astype(int)
+
+fav_num_cols = [c for c in df_pd.columns if c.startswith("fav_") and c.endswith("_num")]
+
+feature_cols = (
+    ["age_num", "education_num", "gender_bin"]
+    + [c + "_bin" for c in seen_ep_cols]
+    + [c + "_bin" for c in ["star_wars_fan", "star_trek_fan", "know_expanded_universe", "expanded_universe_fan"] if c in df_pd.columns]
+    + fav_num_cols
+)
+
+X = df_pd[feature_cols].fillna(0)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+clf = RandomForestClassifier(n_estimators=100, random_state=42)
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+
+report = classification_report(y_test, y_pred, target_names=["< $50k", ">= $50k"], output_dict=True)
+pd.DataFrame(report).T[["precision", "recall"]]
+```
+
+### Feature Importance
+
+```{python}
+imp_df = pl.from_pandas(
+    pd.DataFrame({"feature": feature_cols, "importance": clf.feature_importances_})
+    .sort_values("importance", ascending=False)
+    .head(10)
+    .reset_index(drop=True)
+)
+
+(
+    ggplot(imp_df, aes(x=as_discrete("feature", order_by="importance", order=1), y="importance"))
+    + geom_bar(stat="identity", fill="#438CC4")
+    + coord_flip()
+    + labs(title="Top 10 Feature Importances", x="", y="Importance")
+    + theme_minimal()
+)
+```
+
+Education and age are the strongest predictors of income. Star Wars viewing habits and character favorability ratings add relatively little.
+
+
+## Conclusion
+
+The dataset lines up with the FiveThirtyEight article, and the model does confirm that education and age drive income predictions way more than anything Star Wars related. That part isn't really surprising.
+
+The main limitation is the data itself — it's a 2014 survey of about 800 people, and after dropping rows with missing income you're working with around 600. The test set ends up being only 203 rows, which isn't a lot. The model hit 61% accuracy and the precision on the under $50k class was 0.47, basically a coin flip for that group.
+
+For a recommendation: don't use Star Wars preferences to predict someone's income, it's not doing much. If the actual goal is predicting income, education level alone would probably get you close to the same result with something a lot simpler than a Random Forest. Future work could look at a bigger and more recent survey dataset, or try to get cleaner income data instead of the binned ranges we have here.
