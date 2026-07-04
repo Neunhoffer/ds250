@@ -159,7 +159,7 @@ seen_data = pl.DataFrame({
 )
 ```
 
-**Chart 2 — Character favorability**
+**Chart 2 — Character favorabillity**
 
 ```{python}
 fav_raw_cols = [c for c in df_filtered.columns if c.startswith("fav_")]
