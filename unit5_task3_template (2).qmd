@@ -34,6 +34,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
+from sklearn.preprocessing import OneHotEncoder
 
 LetsPlot.setup_html(isolated_frame=True)
 
@@ -114,7 +115,7 @@ df = pl.read_csv(data_url, skip_rows=12, has_header=False, new_columns = new_nam
 
 - Filtered to 835 respondents who have seen at least one Star Wars film.
 - Recreated two charts from the FiveThirtyEight article to validate the dataset.
-- Recoded age, education, income, and favorability columns to ordinal integers for use in a machine learning model.
+- Dropped identifying columns and one-hot encoded non-numeric columns to prepare features for the machine learning model.
 - Trained a Random Forest to predict whether a respondent earns at least $50k; education and age were the strongest predictors.
 - **Stretch: No**
 
@@ -186,60 +187,10 @@ fav_data = pl.DataFrame(fav_summary).sort("pct_favorable", descending=True)
 )
 ```
 
-### Recoding Range Variables
-
-Age, education, income, and favorability columns were each replaced with an ordinal integer. The original columns were dropped. The table below shows the first five rows of the reformatted data.
-
-```{python}
-age_map = {"18-29": 1, "30-44": 2, "45-60": 3, "> 60": 4}
-
-edu_map = {
-    "Less than high school degree": 1,
-    "High school degree": 2,
-    "Some college or Associate degree": 3,
-    "Bachelor degree": 4,
-    "Graduate degree": 5,
-}
-
-income_map = {
-    "$0 - $24,999": 1,
-    "$25,000 - $49,999": 2,
-    "$50,000 - $99,999": 3,
-    "$100,000 - $149,999": 4,
-    "$150,000+": 5,
-}
-
-fav_map = {
-    "Unfamiliar (N/A)": 0,
-    "Very unfavorably": 1,
-    "Somewhat unfavorably": 2,
-    "Neither favorably nor unfavorably (neutral)": 3,
-    "Somewhat favorably": 4,
-    "Very favorably": 5,
-}
-
-fav_cols = [c for c in df_filtered.columns if c.startswith("fav_")]
-
-df_ml = (
-    df_filtered
-    .with_columns(
-        pl.col("age").replace(age_map).cast(pl.Int8).alias("age_num"),
-        pl.col("education").replace(edu_map).cast(pl.Int8).alias("education_num"),
-        pl.col("household_income").replace(income_map).cast(pl.Int8).alias("income_num"),
-        *[pl.col(c).replace(fav_map).cast(pl.Int8).alias(c + "_num") for c in fav_cols],
-    )
-    .drop(["age", "education", "household_income"] + fav_cols)
-)
-
-df_ml.select(
-    ["age_num", "education_num", "income_num"] + [c + "_num" for c in fav_cols[:3]]
-).head(5)
-```
-
 
 ### Missing Values
 
-Missing values showed up in a few places. Respondents who didn't answer the income question got dropped completely since income is the target — you can't train on a row with no label. Everything else got filled with 0. For the binary columns like whether someone saw a film or considers themselves a fan, 0 already means "no" so that works fine. For the favorability columns it's a little messier since 0 technically maps to "Unfamiliar," but treating a blank the same as unfamiliar is probably the closest thing to a reasonable assumption here. Dropping income non-responses brought the dataset down from 835 to around 600 rows, which is worth keeping in mind when looking at the results.
+Missing values showed up in a few places. Respondents who didn't answer the income question got dropped since income is the target — you can't train on a row with no label. Everything else had nulls filled with the string "missing" before one-hot encoding, so the model treats no-response as its own category. Dropping income non-responses brought the dataset down from 835 to around 600 rows, which is worth keeping in mind when looking at the results.
 
 
 ## Results
@@ -247,30 +198,26 @@ Missing values showed up in a few places. Respondents who didn't answer the inco
 ### Classification Report
 
 ```{python}
-df_pd = df_ml.to_pandas()
-df_pd = df_pd.dropna(subset=["income_num"])
+df_pd = df_filtered.to_pandas()
 
-y = (df_pd["income_num"] >= 3).astype(int)
+# Drop identifying columns
+drop_cols = [c for c in df_pd.columns if c in ["respondentid", "first_name", "last_name", "email"]]
+df_pd = df_pd.drop(columns=drop_cols)
 
-for c in seen_ep_cols:
-    df_pd[c + "_bin"] = df_pd[c].notna().astype(int)
+# Create target then drop income column
+df_pd = df_pd.dropna(subset=["household_income"])
+y = df_pd["household_income"].isin(["$50,000 - $99,999", "$100,000 - $149,999", "$150,000+"]).astype(int)
+df_pd = df_pd.drop(columns=["household_income"])
 
-for c in ["star_wars_fan", "star_trek_fan", "know_expanded_universe", "expanded_universe_fan"]:
-    if c in df_pd.columns:
-        df_pd[c + "_bin"] = (df_pd[c] == "Yes").astype(int)
+# One-hot encode all non-numeric columns
+cat_cols = df_pd.select_dtypes(include="object").columns.tolist()
+num_cols = df_pd.select_dtypes(exclude="object").columns.tolist()
 
-df_pd["gender_bin"] = (df_pd["gender"] == "Male").astype(int)
+enc = OneHotEncoder(sparse_output=False, handle_unknown="ignore")
+X_cat = enc.fit_transform(df_pd[cat_cols].fillna("missing"))
+X_num = df_pd[num_cols].fillna(0).to_numpy()
+X = np.hstack([X_num, X_cat]) if num_cols else X_cat
 
-fav_num_cols = [c for c in df_pd.columns if c.startswith("fav_") and c.endswith("_num")]
-
-feature_cols = (
-    ["age_num", "education_num", "gender_bin"]
-    + [c + "_bin" for c in seen_ep_cols]
-    + [c + "_bin" for c in ["star_wars_fan", "star_trek_fan", "know_expanded_universe", "expanded_universe_fan"] if c in df_pd.columns]
-    + fav_num_cols
-)
-
-X = df_pd[feature_cols].fillna(0)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
 clf = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -284,8 +231,10 @@ pd.DataFrame(report).T[["precision", "recall"]]
 ### Feature Importance
 
 ```{python}
+all_feature_names = num_cols + enc.get_feature_names_out(cat_cols).tolist()
+
 imp_df = pl.from_pandas(
-    pd.DataFrame({"feature": feature_cols, "importance": clf.feature_importances_})
+    pd.DataFrame({"feature": all_feature_names, "importance": clf.feature_importances_})
     .sort_values("importance", ascending=False)
     .head(10)
     .reset_index(drop=True)

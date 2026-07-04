@@ -2258,7 +2258,6 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
   <ul>
   <li><a href="#filtering-to-835-respondents" id="toc-filtering-to-835-respondents">Filtering to 835 Respondents</a></li>
   <li><a href="#article-validation" id="toc-article-validation">Article Validation</a></li>
-  <li><a href="#recoding-range-variables" id="toc-recoding-range-variables">Recoding Range Variables</a></li>
   <li><a href="#missing-values" id="toc-missing-values">Missing Values</a></li>
   </ul></li>
   <li><a href="#results" id="toc-results">Results</a>
@@ -2269,7 +2268,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
   <li><a href="#conclusion" id="toc-conclusion">Conclusion</a></li>
   </ul>
 </nav>
-<div id="eb18fd60" class="cell" data-execution_count="1">
+<div id="2448b4da" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
@@ -2280,16 +2279,17 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.ensemble <span class="im">import</span> RandomForestClassifier</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> classification_report</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>LetsPlot.setup_html(isolated_frame<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>data_url <span class="op">=</span> <span class="st">&quot;https://byuidatascience.github.io/DS250-Course-Polars/Data/StarWars_with_emails.csv&quot;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> OneHotEncoder</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>LetsPlot.setup_html(isolated_frame<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>data_url <span class="op">=</span> <span class="st">&quot;https://byuidatascience.github.io/DS250-Course-Polars/Data/StarWars_with_emails.csv&quot;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <!-- The first 10 rows are not part of the datset we need.
 
 The columns headers are split across two rows. We need to clean and simplify the column headers-->
-<div id="b3183d64" class="cell" data-execution_count="2">
+<div id="7510787a" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read in and tidy up the first row</span></span>
@@ -2325,7 +2325,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 </details>
 </div>
 <!-- Combine series q and a into one series to be used as column names-->
-<div id="7ac25cf2" class="cell" data-execution_count="3">
+<div id="2d070bb5" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> pl.Series(pl.read_csv(data_url, skip_rows <span class="op">=</span> <span class="dv">11</span>, n_rows<span class="op">=</span><span class="dv">1</span>, has_header<span class="op">=</span><span class="va">False</span>, encoding <span class="op">=</span> <span class="st">&#39;utf8-lossy&#39;</span>).row(<span class="dv">0</span>))</span>
@@ -2339,7 +2339,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div id="6c706365" class="cell" data-execution_count="4">
+<div id="8d79ca6c" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Now combine the two series, each of which contains part of the desired column header</span></span>
@@ -2361,7 +2361,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 <ul>
 <li>Filtered to 835 respondents who have seen at least one Star Wars film.</li>
 <li>Recreated two charts from the FiveThirtyEight article to validate the dataset.</li>
-<li>Recoded age, education, income, and favorability columns to ordinal integers for use in a machine learning model.</li>
+<li>Dropped identifying columns and one-hot encoded non-numeric columns to prepare features for the machine learning model.</li>
 <li>Trained a Random Forest to predict whether a respondent earns at least $50k; education and age were the strongest predictors.</li>
 <li><strong>Stretch: No</strong></li>
 </ul>
@@ -2370,7 +2370,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 <h2 class="anchored" data-anchor-id="methods">Methods</h2>
 <section id="filtering-to-835-respondents" class="level3">
 <h3 class="anchored" data-anchor-id="filtering-to-835-respondents">Filtering to 835 Respondents</h3>
-<div id="f1e699ae" class="cell" data-execution_count="5">
+<div id="9f71246c" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>seen_ep_cols <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> df.columns <span class="cf">if</span> c.startswith(<span class="st">&quot;seen_&quot;</span>) <span class="kw">and</span> c <span class="op">!=</span> <span class="st">&quot;seen_any&quot;</span>]</span>
@@ -2389,7 +2389,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 <section id="article-validation" class="level3">
 <h3 class="anchored" data-anchor-id="article-validation">Article Validation</h3>
 <p><strong>Chart 1 — Which films have respondents seen?</strong></p>
-<div id="89bdfdce" class="cell" data-execution_count="6">
+<div id="2f30b6e0" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>total <span class="op">=</span> <span class="bu">len</span>(df_filtered)</span>
@@ -2411,7 +2411,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 <span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
 <span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="16">
+<div class="cell-output cell-output-display" data-execution_count="6">
 
    
        <meta charset="UTF-8">
@@ -2421,7 +2421,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 //# sourceMappingURL=lets-plot.js.map</script>
    
    
-          <div id="NBji5W"></div>
+          <div id="oJH7eD"></div>
    <script type="text/javascript" data-lets-plot-script="plot">
    
    (function() {
@@ -2446,7 +2446,7 @@ The columns headers are split across two rows. We need to clean and simplify the
        };
    }
    
-   const containerDiv = document.getElementById("NBji5W");
+   const containerDiv = document.getElementById("oJH7eD");
    let fig = null;
    
    function renderPlot() {
@@ -2513,7 +2513,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 }
 }],
 "metainfo_list":[],
-"spec_id":"4"
+"spec_id":"1"
 };
            fig = LetsPlot.buildPlotFromProcessedSpecs(plotSpec, containerDiv, sizing);
        } else {
@@ -2561,7 +2561,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 </div>
 </div>
 <p><strong>Chart 2 — Character favorability</strong></p>
-<div id="47538ba6" class="cell" data-execution_count="7">
+<div id="82947f1d" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fav_raw_cols <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> df_filtered.columns <span class="cf">if</span> c.startswith(<span class="st">&quot;fav_&quot;</span>)]</span>
@@ -2588,7 +2588,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 <span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
 <span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="17">
+<div class="cell-output cell-output-display" data-execution_count="7">
 
    
        <meta charset="UTF-8">
@@ -2598,7 +2598,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 //# sourceMappingURL=lets-plot.js.map</script>
    
    
-          <div id="b2RP7V"></div>
+          <div id="PXY6Bb"></div>
    <script type="text/javascript" data-lets-plot-script="plot">
    
    (function() {
@@ -2623,7 +2623,7 @@ The columns headers are split across two rows. We need to clean and simplify the
        };
    }
    
-   const containerDiv = document.getElementById("b2RP7V");
+   const containerDiv = document.getElementById("PXY6Bb");
    let fig = null;
    
    function renderPlot() {
@@ -2687,7 +2687,7 @@ The columns headers are split across two rows. We need to clean and simplify the
 }
 }],
 "metainfo_list":[],
-"spec_id":"5"
+"spec_id":"2"
 };
            fig = LetsPlot.buildPlotFromProcessedSpecs(plotSpec, containerDiv, sizing);
        } else {
@@ -2735,177 +2735,48 @@ The columns headers are split across two rows. We need to clean and simplify the
 </div>
 </div>
 </section>
-<section id="recoding-range-variables" class="level3">
-<h3 class="anchored" data-anchor-id="recoding-range-variables">Recoding Range Variables</h3>
-<p>Age, education, income, and favorability columns were each replaced with an ordinal integer. The original columns were dropped. The table below shows the first five rows of the reformatted data.</p>
-<div id="c6216735" class="cell" data-execution_count="8">
-<details class="code-fold">
-<summary>Show the code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>age_map <span class="op">=</span> {<span class="st">&quot;18-29&quot;</span>: <span class="dv">1</span>, <span class="st">&quot;30-44&quot;</span>: <span class="dv">2</span>, <span class="st">&quot;45-60&quot;</span>: <span class="dv">3</span>, <span class="st">&quot;&gt; 60&quot;</span>: <span class="dv">4</span>}</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>edu_map <span class="op">=</span> {</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Less than high school degree&quot;</span>: <span class="dv">1</span>,</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;High school degree&quot;</span>: <span class="dv">2</span>,</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Some college or Associate degree&quot;</span>: <span class="dv">3</span>,</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Bachelor degree&quot;</span>: <span class="dv">4</span>,</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Graduate degree&quot;</span>: <span class="dv">5</span>,</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>income_map <span class="op">=</span> {</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;$0 - $24,999&quot;</span>: <span class="dv">1</span>,</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;$25,000 - $49,999&quot;</span>: <span class="dv">2</span>,</span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;$50,000 - $99,999&quot;</span>: <span class="dv">3</span>,</span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;$100,000 - $149,999&quot;</span>: <span class="dv">4</span>,</span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;$150,000+&quot;</span>: <span class="dv">5</span>,</span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>fav_map <span class="op">=</span> {</span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Unfamiliar (N/A)&quot;</span>: <span class="dv">0</span>,</span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Very unfavorably&quot;</span>: <span class="dv">1</span>,</span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Somewhat unfavorably&quot;</span>: <span class="dv">2</span>,</span>
-<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Neither favorably nor unfavorably (neutral)&quot;</span>: <span class="dv">3</span>,</span>
-<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Somewhat favorably&quot;</span>: <span class="dv">4</span>,</span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Very favorably&quot;</span>: <span class="dv">5</span>,</span>
-<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>fav_cols <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> df_filtered.columns <span class="cf">if</span> c.startswith(<span class="st">&quot;fav_&quot;</span>)]</span>
-<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>df_ml <span class="op">=</span> (</span>
-<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>    df_filtered</span>
-<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>    .with_columns(</span>
-<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>        pl.col(<span class="st">&quot;age&quot;</span>).replace(age_map).cast(pl.Int8).alias(<span class="st">&quot;age_num&quot;</span>),</span>
-<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>        pl.col(<span class="st">&quot;education&quot;</span>).replace(edu_map).cast(pl.Int8).alias(<span class="st">&quot;education_num&quot;</span>),</span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>        pl.col(<span class="st">&quot;household_income&quot;</span>).replace(income_map).cast(pl.Int8).alias(<span class="st">&quot;income_num&quot;</span>),</span>
-<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>        <span class="op">*</span>[pl.col(c).replace(fav_map).cast(pl.Int8).alias(c <span class="op">+</span> <span class="st">&quot;_num&quot;</span>) <span class="cf">for</span> c <span class="kw">in</span> fav_cols],</span>
-<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>    .drop([<span class="st">&quot;age&quot;</span>, <span class="st">&quot;education&quot;</span>, <span class="st">&quot;household_income&quot;</span>] <span class="op">+</span> fav_cols)</span>
-<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>df_ml.select(</span>
-<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>    [<span class="st">&quot;age_num&quot;</span>, <span class="st">&quot;education_num&quot;</span>, <span class="st">&quot;income_num&quot;</span>] <span class="op">+</span> [c <span class="op">+</span> <span class="st">&quot;_num&quot;</span> <span class="cf">for</span> c <span class="kw">in</span> fav_cols[:<span class="dv">3</span>]]</span>
-<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>).head(<span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output cell-output-display" data-execution_count="18">
-<div><style>
-.dataframe > thead > tr,
-.dataframe > tbody > tr {
-text-align: right;
-white-space: pre-wrap;
-}
-</style>
-<small>shape: (5, 6)</small>
-<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th">age_num</th>
-<th data-quarto-table-cell-role="th">education_num</th>
-<th data-quarto-table-cell-role="th">income_num</th>
-<th data-quarto-table-cell-role="th">fav_Han_Solo_num</th>
-<th data-quarto-table-cell-role="th">fav_Luke_Skywalker_num</th>
-<th data-quarto-table-cell-role="th">fav_Princess_Leia_Organa_num</th>
-</tr>
-<tr class="even">
-<td>i8</td>
-<td>i8</td>
-<td>i8</td>
-<td>i8</td>
-<td>i8</td>
-<td>i8</td>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>1</td>
-<td>2</td>
-<td>null</td>
-<td>5</td>
-<td>5</td>
-<td>5</td>
-</tr>
-<tr class="even">
-<td>1</td>
-<td>2</td>
-<td>1</td>
-<td>4</td>
-<td>4</td>
-<td>4</td>
-</tr>
-<tr class="odd">
-<td>1</td>
-<td>3</td>
-<td>4</td>
-<td>5</td>
-<td>5</td>
-<td>5</td>
-</tr>
-<tr class="even">
-<td>1</td>
-<td>3</td>
-<td>4</td>
-<td>5</td>
-<td>4</td>
-<td>4</td>
-</tr>
-<tr class="odd">
-<td>1</td>
-<td>4</td>
-<td>2</td>
-<td>5</td>
-<td>5</td>
-<td>5</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-</section>
 <section id="missing-values" class="level3">
 <h3 class="anchored" data-anchor-id="missing-values">Missing Values</h3>
-<p>Missing values showed up in a few places. Respondents who didn’t answer the income question got dropped completely since income is the target — you can’t train on a row with no label. Everything else got filled with 0. For the binary columns like whether someone saw a film or considers themselves a fan, 0 already means “no” so that works fine. For the favorability columns it’s a little messier since 0 technically maps to “Unfamiliar,” but treating a blank the same as unfamiliar is probably the closest thing to a reasonable assumption here. Dropping income non-responses brought the dataset down from 835 to around 600 rows, which is worth keeping in mind when looking at the results.</p>
+<p>Missing values showed up in a few places. Respondents who didn’t answer the income question got dropped since income is the target — you can’t train on a row with no label. Everything else had nulls filled with the string “missing” before one-hot encoding, so the model treats no-response as its own category. Dropping income non-responses brought the dataset down from 835 to around 600 rows, which is worth keeping in mind when looking at the results.</p>
 </section>
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">Results</h2>
 <section id="classification-report" class="level3">
 <h3 class="anchored" data-anchor-id="classification-report">Classification Report</h3>
-<div id="00fc73c3" class="cell" data-execution_count="9">
+<div id="9226c5a8" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Show the code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>df_pd <span class="op">=</span> df_ml.to_pandas()</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>df_pd <span class="op">=</span> df_pd.dropna(subset<span class="op">=</span>[<span class="st">&quot;income_num&quot;</span>])</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> (df_pd[<span class="st">&quot;income_num&quot;</span>] <span class="op">&gt;=</span> <span class="dv">3</span>).astype(<span class="bu">int</span>)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> seen_ep_cols:</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    df_pd[c <span class="op">+</span> <span class="st">&quot;_bin&quot;</span>] <span class="op">=</span> df_pd[c].notna().astype(<span class="bu">int</span>)</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> [<span class="st">&quot;star_wars_fan&quot;</span>, <span class="st">&quot;star_trek_fan&quot;</span>, <span class="st">&quot;know_expanded_universe&quot;</span>, <span class="st">&quot;expanded_universe_fan&quot;</span>]:</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> c <span class="kw">in</span> df_pd.columns:</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        df_pd[c <span class="op">+</span> <span class="st">&quot;_bin&quot;</span>] <span class="op">=</span> (df_pd[c] <span class="op">==</span> <span class="st">&quot;Yes&quot;</span>).astype(<span class="bu">int</span>)</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>df_pd[<span class="st">&quot;gender_bin&quot;</span>] <span class="op">=</span> (df_pd[<span class="st">&quot;gender&quot;</span>] <span class="op">==</span> <span class="st">&quot;Male&quot;</span>).astype(<span class="bu">int</span>)</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>fav_num_cols <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> df_pd.columns <span class="cf">if</span> c.startswith(<span class="st">&quot;fav_&quot;</span>) <span class="kw">and</span> c.endswith(<span class="st">&quot;_num&quot;</span>)]</span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>feature_cols <span class="op">=</span> (</span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    [<span class="st">&quot;age_num&quot;</span>, <span class="st">&quot;education_num&quot;</span>, <span class="st">&quot;gender_bin&quot;</span>]</span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> [c <span class="op">+</span> <span class="st">&quot;_bin&quot;</span> <span class="cf">for</span> c <span class="kw">in</span> seen_ep_cols]</span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> [c <span class="op">+</span> <span class="st">&quot;_bin&quot;</span> <span class="cf">for</span> c <span class="kw">in</span> [<span class="st">&quot;star_wars_fan&quot;</span>, <span class="st">&quot;star_trek_fan&quot;</span>, <span class="st">&quot;know_expanded_universe&quot;</span>, <span class="st">&quot;expanded_universe_fan&quot;</span>] <span class="cf">if</span> c <span class="kw">in</span> df_pd.columns]</span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> fav_num_cols</span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> df_pd[feature_cols].fillna(<span class="dv">0</span>)</span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>X_train, X_test, y_train, y_test <span class="op">=</span> train_test_split(X, y, test_size<span class="op">=</span><span class="fl">0.3</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>clf <span class="op">=</span> RandomForestClassifier(n_estimators<span class="op">=</span><span class="dv">100</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
-<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>clf.fit(X_train, y_train)</span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> clf.predict(X_test)</span>
-<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>report <span class="op">=</span> classification_report(y_test, y_pred, target_names<span class="op">=</span>[<span class="st">&quot;&lt; $50k&quot;</span>, <span class="st">&quot;&gt;= $50k&quot;</span>], output_dict<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>pd.DataFrame(report).T[[<span class="st">&quot;precision&quot;</span>, <span class="st">&quot;recall&quot;</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>df_pd <span class="op">=</span> df_filtered.to_pandas()</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Drop identifying columns</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>drop_cols <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> df_pd.columns <span class="cf">if</span> c <span class="kw">in</span> [<span class="st">&quot;respondentid&quot;</span>, <span class="st">&quot;first_name&quot;</span>, <span class="st">&quot;last_name&quot;</span>, <span class="st">&quot;email&quot;</span>]]</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>df_pd <span class="op">=</span> df_pd.drop(columns<span class="op">=</span>drop_cols)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Create target then drop income column</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>df_pd <span class="op">=</span> df_pd.dropna(subset<span class="op">=</span>[<span class="st">&quot;household_income&quot;</span>])</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> df_pd[<span class="st">&quot;household_income&quot;</span>].isin([<span class="st">&quot;$50,000 - $99,999&quot;</span>, <span class="st">&quot;$100,000 - $149,999&quot;</span>, <span class="st">&quot;$150,000+&quot;</span>]).astype(<span class="bu">int</span>)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>df_pd <span class="op">=</span> df_pd.drop(columns<span class="op">=</span>[<span class="st">&quot;household_income&quot;</span>])</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co"># One-hot encode all non-numeric columns</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>cat_cols <span class="op">=</span> df_pd.select_dtypes(include<span class="op">=</span><span class="st">&quot;object&quot;</span>).columns.tolist()</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>num_cols <span class="op">=</span> df_pd.select_dtypes(exclude<span class="op">=</span><span class="st">&quot;object&quot;</span>).columns.tolist()</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>enc <span class="op">=</span> OneHotEncoder(sparse_output<span class="op">=</span><span class="va">False</span>, handle_unknown<span class="op">=</span><span class="st">&quot;ignore&quot;</span>)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>X_cat <span class="op">=</span> enc.fit_transform(df_pd[cat_cols].fillna(<span class="st">&quot;missing&quot;</span>))</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>X_num <span class="op">=</span> df_pd[num_cols].fillna(<span class="dv">0</span>).to_numpy()</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.hstack([X_num, X_cat]) <span class="cf">if</span> num_cols <span class="cf">else</span> X_cat</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>X_train, X_test, y_train, y_test <span class="op">=</span> train_test_split(X, y, test_size<span class="op">=</span><span class="fl">0.3</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>clf <span class="op">=</span> RandomForestClassifier(n_estimators<span class="op">=</span><span class="dv">100</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>clf.fit(X_train, y_train)</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> clf.predict(X_test)</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>report <span class="op">=</span> classification_report(y_test, y_pred, target_names<span class="op">=</span>[<span class="st">&quot;&lt; $50k&quot;</span>, <span class="st">&quot;&gt;= $50k&quot;</span>], output_dict<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>pd.DataFrame(report).T[[<span class="st">&quot;precision&quot;</span>, <span class="st">&quot;recall&quot;</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="19">
+<div class="cell-output cell-output-display" data-execution_count="8">
 <div>
 
 
@@ -2920,28 +2791,28 @@ white-space: pre-wrap;
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">&lt; $50k</th>
-<td>0.466667</td>
-<td>0.272727</td>
+<td>0.629630</td>
+<td>0.220779</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">&gt;= $50k</th>
-<td>0.645570</td>
-<td>0.809524</td>
+<td>0.659091</td>
+<td>0.920635</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">accuracy</th>
-<td>0.605911</td>
-<td>0.605911</td>
+<td>0.655172</td>
+<td>0.655172</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">macro avg</th>
-<td>0.556118</td>
-<td>0.541126</td>
+<td>0.644360</td>
+<td>0.570707</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">weighted avg</th>
-<td>0.577710</td>
-<td>0.605911</td>
+<td>0.647916</td>
+<td>0.655172</td>
 </tr>
 </tbody>
 </table>
@@ -2952,25 +2823,27 @@ white-space: pre-wrap;
 </section>
 <section id="feature-importance" class="level3">
 <h3 class="anchored" data-anchor-id="feature-importance">Feature Importance</h3>
-<div id="ab5d0bcb" class="cell" data-execution_count="10">
+<div id="87861812" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Show the code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>imp_df <span class="op">=</span> pl.from_pandas(</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    pd.DataFrame({<span class="st">&quot;feature&quot;</span>: feature_cols, <span class="st">&quot;importance&quot;</span>: clf.feature_importances_})</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    .sort_values(<span class="st">&quot;importance&quot;</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    .head(<span class="dv">10</span>)</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    .reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>(</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    ggplot(imp_df, aes(x<span class="op">=</span>as_discrete(<span class="st">&quot;feature&quot;</span>, order_by<span class="op">=</span><span class="st">&quot;importance&quot;</span>, order<span class="op">=</span><span class="dv">1</span>), y<span class="op">=</span><span class="st">&quot;importance&quot;</span>))</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_bar(stat<span class="op">=</span><span class="st">&quot;identity&quot;</span>, fill<span class="op">=</span><span class="st">&quot;#438CC4&quot;</span>)</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> coord_flip()</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(title<span class="op">=</span><span class="st">&quot;Top 10 Feature Importances&quot;</span>, x<span class="op">=</span><span class="st">&quot;&quot;</span>, y<span class="op">=</span><span class="st">&quot;Importance&quot;</span>)</span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>all_feature_names <span class="op">=</span> num_cols <span class="op">+</span> enc.get_feature_names_out(cat_cols).tolist()</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>imp_df <span class="op">=</span> pl.from_pandas(</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    pd.DataFrame({<span class="st">&quot;feature&quot;</span>: all_feature_names, <span class="st">&quot;importance&quot;</span>: clf.feature_importances_})</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    .sort_values(<span class="st">&quot;importance&quot;</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    .head(<span class="dv">10</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    .reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>(</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    ggplot(imp_df, aes(x<span class="op">=</span>as_discrete(<span class="st">&quot;feature&quot;</span>, order_by<span class="op">=</span><span class="st">&quot;importance&quot;</span>, order<span class="op">=</span><span class="dv">1</span>), y<span class="op">=</span><span class="st">&quot;importance&quot;</span>))</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_bar(stat<span class="op">=</span><span class="st">&quot;identity&quot;</span>, fill<span class="op">=</span><span class="st">&quot;#438CC4&quot;</span>)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> coord_flip()</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(title<span class="op">=</span><span class="st">&quot;Top 10 Feature Importances&quot;</span>, x<span class="op">=</span><span class="st">&quot;&quot;</span>, y<span class="op">=</span><span class="st">&quot;Importance&quot;</span>)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="20">
+<div class="cell-output cell-output-display" data-execution_count="9">
 
    
        <meta charset="UTF-8">
@@ -2980,7 +2853,7 @@ white-space: pre-wrap;
 //# sourceMappingURL=lets-plot.js.map</script>
    
    
-          <div id="xCHgYy"></div>
+          <div id="9CYs1O"></div>
    <script type="text/javascript" data-lets-plot-script="plot">
    
    (function() {
@@ -3005,15 +2878,15 @@ white-space: pre-wrap;
        };
    }
    
-   const containerDiv = document.getElementById("xCHgYy");
+   const containerDiv = document.getElementById("9CYs1O");
    let fig = null;
    
    function renderPlot() {
        if (fig === null) {
            const plotSpec = {
 "data":{
-"feature":["education_num","age_num","fav_Jar_Jar_Binks_num","fav_Anakin_Skywalker_num","fav_Darth_Vader_num","fav_Padme_Amidala_num","fav_Emperor_Palpatine_num","fav_Boba_Fett_num","fav_Lando_Calrissian_num","fav_C-3P0_num"],
-"importance":[0.07723445899581445,0.07334509932446961,0.06580788655402078,0.06378730743387845,0.062310415487994424,0.060139823433128,0.056682398101060724,0.056230330081768594,0.049267026870932006,0.0379614349236393]
+"feature":["rank_Episode_VI","rank_Episode_V","rank_Episode_IV","rank_Episode_I","rank_Episode_III","rank_Episode_II","age_18-29","education_Some college or Associate degree","education_Graduate degree","location_East North Central"],
+"importance":[0.029564754593317026,0.02790332542881255,0.026085577426327337,0.024157861908336086,0.023646419890822716,0.0234465481687136,0.020290586382798226,0.02013635934094538,0.01612264922921521,0.011137564598887421]
 },
 "mapping":{
 "x":"feature",
@@ -3069,7 +2942,7 @@ white-space: pre-wrap;
 }
 }],
 "metainfo_list":[],
-"spec_id":"6"
+"spec_id":"3"
 };
            fig = LetsPlot.buildPlotFromProcessedSpecs(plotSpec, containerDiv, sizing);
        } else {
